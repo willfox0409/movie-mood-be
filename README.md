@@ -1,24 +1,6 @@
-# README
+# Movie Mood — Backend
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+This is the Rails API backend for the Movie Mood app.  
+It handles user authentication, movie recommendations, OpenAI calls, TMDB & JustWatch integration, and data persistence.
 
-Things you may want to cover:
-
-* Ruby version
-
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+(More detailed setup instructions will be added as development progresses.)
