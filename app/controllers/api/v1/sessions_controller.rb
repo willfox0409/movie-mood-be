@@ -3,7 +3,8 @@ class Api::V1::SessionsController < ApplicationController
     user = User.find_by(username: params[:username])
 
     if user&.authenticate(params[:password])
-      render json: { message: "Welcome back, #{user.username}!"}, status: :ok
+      token = JsonWebToken.encode(userid: user_id)
+      render json: { message: "Welcome back, #{user.username}!", token: token}, status: :ok 
     else
       render json: { error: "Invalid credentials" }, status: :unauthorized
     end
