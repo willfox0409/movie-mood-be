@@ -10,9 +10,36 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_06_17_210251) do
+ActiveRecord::Schema[7.1].define(version: 2025_07_19_023808) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "movies", force: :cascade do |t|
+    t.integer "tmdb_id", null: false
+    t.string "title", null: false
+    t.integer "runtime"
+    t.string "poster_url"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "description"
+  end
+
+  create_table "recommendations", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "movie_id", null: false
+    t.string "mood"
+    t.string "genre"
+    t.string "decade"
+    t.string "runtime"
+    t.integer "tmdb_id"
+    t.datetime "recommended_at"
+    t.text "openai_prompt"
+    t.text "openai_response"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["movie_id"], name: "index_recommendations_on_movie_id"
+    t.index ["user_id"], name: "index_recommendations_on_user_id"
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "username", null: false
@@ -24,4 +51,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_17_210251) do
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 
+  add_foreign_key "recommendations", "movies"
+  add_foreign_key "recommendations", "users"
 end
