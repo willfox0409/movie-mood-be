@@ -23,7 +23,7 @@ require 'rspec/rails'
 #
 require 'webmock/rspec'
 
-Webmock.disable_net_connect!(allow_local_host: true)
+WebMock.disable_net_connect!(allow_local_host: true)
 
 # The following line is provided for convenience purposes. It has the downside
 # of increasing the boot-up time by auto-requiring all files in the support
