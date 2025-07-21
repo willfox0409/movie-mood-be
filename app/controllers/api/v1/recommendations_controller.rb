@@ -10,8 +10,6 @@ class Api::V1::RecommendationsController < ApplicationController
 
     # Step 2: Call OpenAIService
     ai_result = OpenAiService.recommend_movie(mood: mood, genre: genre, decade: decade, runtime: runtime)
-    # puts "🎥 AI returned title: #{ai_result[:title]}"
-    # puts "🧠 Full OpenAI response: #{ai_result[:full_response]}"
     movie_title = ai_result[:title].gsub(/\A"|"\Z/, '').strip
     full_response = ai_result[:full_response]
 
@@ -19,17 +17,12 @@ class Api::V1::RecommendationsController < ApplicationController
     movie = Movie.find_by(title: movie_title)
 
     if movie.nil?
-      puts "🔎 Cleaned title being searched: #{movie_title.inspect}"
       tmdb_data = TmdbService.search_movie(movie_title)
-
-      puts "🧪 TMDB search response: #{tmdb_data.inspect}"               # ✅ Correct!
 
       if tmdb_data.nil?
         render json: { error: "Movie not found" }, status: :not_found and return
       end
 
-      puts "🎬 TMDB ID we're about to look up: #{tmdb_data["id"].inspect}"
-      puts "🎞️ Full tmdb_data: #{tmdb_data.inspect}"
       details = TmdbService.movie_details(tmdb_data["id"])
 
       movie = Movie.create!(
