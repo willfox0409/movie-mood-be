@@ -5,14 +5,11 @@ class TmdbService
   base_uri "https://api.themoviedb.org/3"
 
   def self.search_movie(title)
-    puts "🔍 TmdbService.search_movie called with title: #{title}"
 
     response = self.get("/search/movie", query: {
       query: title, 
       api_key: ENV["TMDB_API_KEY"]
     })
-
-    puts "🔍 Response class: #{response.class}"
 
     return nil unless response.success? && response["results"].present?
 
@@ -23,8 +20,6 @@ class TmdbService
     response = self.get("/movie/#{tmdb_id}", query: {
       api_key: ENV["TMDB_API_KEY"]
     })
-
-    puts "🔍 Response class: #{response.class}"
 
     return nil unless response.success?
 
