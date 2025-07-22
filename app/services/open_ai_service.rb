@@ -36,9 +36,16 @@ class OpenAiService
 
   def self.generate_prompt(mood:, genre:, decade:, runtime:)
     """
-    Recommend one movie that would fit a person who is in the mood for something #{mood},
-    within the #{genre} genre, from the #{decade}s, and under #{runtime} minutes if possible.
-    Respond with only the exact title — no quotes or punctuation.
-    """.strip
+    Recommend one movie that best fits a person experiencing the mood: #{mood}.
+    Mood is the most important factor — be thoughtful and specific in your choice.
+
+    Genre (if applicable): #{genre}
+    Decade (if applicable): #{decade}s
+    Runtime (if applicable): around #{runtime} minutes (within 15 minutes is acceptable)
+
+    Return only the exact, full movie title as it appears in The Movie Database (TMDB).
+    Do not include quotation marks, punctuation, or extra commentary.
+    Use the correct capitalization and subtitle if applicable.
+  """.strip
   end
 end
