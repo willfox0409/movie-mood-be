@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_07_19_023808) do
+ActiveRecord::Schema[7.1].define(version: 2025_07_30_223207) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -22,6 +22,32 @@ ActiveRecord::Schema[7.1].define(version: 2025_07_19_023808) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "description"
+  end
+
+  create_table "offers", force: :cascade do |t|
+    t.bigint "movie_id", null: false
+    t.bigint "provider_id", null: false
+    t.string "offer_type", null: false
+    t.decimal "price", precision: 8, scale: 2
+    t.string "url"
+    t.boolean "available", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["available"], name: "index_offers_on_available"
+    t.index ["movie_id", "provider_id", "offer_type"], name: "index_offers_on_movie_provider_type", unique: true
+    t.index ["movie_id"], name: "index_offers_on_movie_id"
+    t.index ["offer_type"], name: "index_offers_on_offer_type"
+    t.index ["provider_id"], name: "index_offers_on_provider_id"
+  end
+
+  create_table "providers", force: :cascade do |t|
+    t.string "name", null: false
+    t.integer "justwatch_id", null: false
+    t.string "logo_url"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["justwatch_id"], name: "index_providers_on_justwatch_id", unique: true
+    t.index ["name"], name: "index_providers_on_name"
   end
 
   create_table "recommendations", force: :cascade do |t|
@@ -37,6 +63,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_07_19_023808) do
     t.text "openai_response"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "recommended_title"
     t.index ["movie_id"], name: "index_recommendations_on_movie_id"
     t.index ["user_id"], name: "index_recommendations_on_user_id"
   end
@@ -51,6 +78,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_07_19_023808) do
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 
+  add_foreign_key "offers", "movies"
+  add_foreign_key "offers", "providers"
   add_foreign_key "recommendations", "movies"
   add_foreign_key "recommendations", "users"
 end

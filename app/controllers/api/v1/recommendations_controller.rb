@@ -32,7 +32,7 @@ class Api::V1::RecommendationsController < ApplicationController
         poster_url: TmdbService.full_poster_url(tmdb_data["poster_path"]),
         description: tmdb_data["overview"]
       )
-    end
+    end 
 
     # Step 4: Create a Recommendation record
     Recommendation.create!(
