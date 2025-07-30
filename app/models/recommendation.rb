@@ -9,4 +9,12 @@ class Recommendation < ApplicationRecord
   validates :recommended_at, presence: true
   validates :openai_prompt, presence: true
   validates :openai_response, presence: true
+
+  before_validation :set_recommended_title
+
+  private
+  
+  def set_recommended_title
+    self.recommended_title = movie.title if movie.present?
+  end
 end
