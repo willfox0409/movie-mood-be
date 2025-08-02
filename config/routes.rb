@@ -6,6 +6,7 @@ Rails.application.routes.draw do
     get 'v1/Recommendations'
     namespace :v1 do
       post '/login', to: 'sessions#create'
+      post '/signup', to: 'users#create'
       post '/recommendation', to: 'recommendations#create'
     end
   end
