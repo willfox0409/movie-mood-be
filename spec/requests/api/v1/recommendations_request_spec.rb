@@ -78,13 +78,12 @@ RSpec.describe "Api::V1::Recommendations", type: :request do
         runtime: 106
       }
 
-      stub_request(:get, "https://api.themoviedb.org/3/movie/123")
-        .with(query: { api_key: ENV["TMDB_API_KEY"] })
-        .to_return(
-          status: 200,
-          body: tmdb_details_stub.to_json,
-          headers: { 'Content-Type' => 'application/json' }
-        )
+    stub_request(:get, %r{https://api\.themoviedb\.org/3/movie/123\?api_key=.*}).
+      to_return(
+        status: 200,
+        body: tmdb_details_stub.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      )
 
       # ✅ Now make the request *after* stubbing
       post "/api/v1/recommendations", params: params, headers: headers
