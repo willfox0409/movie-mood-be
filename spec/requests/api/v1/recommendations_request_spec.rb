@@ -87,7 +87,7 @@ RSpec.describe "Api::V1::Recommendations", type: :request do
         )
 
       # ✅ Now make the request *after* stubbing
-      post "/api/v1/recommendation", params: params, headers: headers
+      post "/api/v1/recommendations", params: params, headers: headers
 
       # ✅ Expectations
       expect(response).to have_http_status(:ok)
@@ -143,7 +143,7 @@ RSpec.describe "Api::V1::Recommendations", type: :request do
           headers: { 'Content-Type' => 'application/json' }
         )
 
-      post "/api/v1/recommendation", params: {
+      post "/api/v1/recommendations", params: {
         mood: "Surreal",
         genre: "Sci-Fi",
         decade: "2030s",
