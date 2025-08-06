@@ -50,6 +50,7 @@ group :development, :test do
   gem 'shoulda-matchers'
   gem "simplecov", require: false
   gem 'webmock'
+  gem 'factory_bot_rails'
 end
 
 group :development do
