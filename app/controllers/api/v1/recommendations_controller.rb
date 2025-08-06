@@ -6,10 +6,11 @@ class Api::V1::RecommendationsController < ApplicationController
     mood    = params[:mood]
     genre   = params[:genre]
     decade  = params[:decade]
-    runtime = params[:runtime]
+    runtime_filter = params[:runtime_filter]
+    runtime = runtime_filter
 
     # Step 2: Call OpenAIService
-    ai_result = OpenAiService.recommend_movie(mood: mood, genre: genre, decade: decade, runtime: runtime)
+    ai_result = OpenAiService.recommend_movie(mood: mood, genre: genre, decade: decade, runtime_filter: runtime_filter)
     movie_title = ai_result[:title].gsub(/\A"|"\Z/, '').strip
     full_response = ai_result[:full_response]
 
@@ -25,17 +26,16 @@ class Api::V1::RecommendationsController < ApplicationController
 
       details = TmdbService.movie_details(tmdb_data["id"])
 
-      movie = Movie.create!(
-        title: tmdb_data["title"],
-        tmdb_id: tmdb_data["id"],
-        runtime: details["runtime"],
-        poster_url: TmdbService.full_poster_url(tmdb_data["poster_path"]),
-        description: tmdb_data["overview"]
-      )
+    movie = Movie.find_or_create_by!(tmdb_id: tmdb_data["id"]) do |m|
+        m.title = tmdb_data["title"]
+        m.runtime = details["runtime"]
+        m.poster_url = TmdbService.full_poster_url(tmdb_data["poster_path"])
+        m.description = tmdb_data["overview"]
+      end
     end 
 
     # Step 4: Create a Recommendation record
-    Recommendation.create!(
+    recommendation = Recommendation.create!(
       user: current_user,
       movie: movie,
       tmdb_id: movie.tmdb_id,
@@ -44,11 +44,11 @@ class Api::V1::RecommendationsController < ApplicationController
       decade: decade,
       runtime: runtime,
       recommended_at: Time.current,
-      openai_prompt: OpenAiService.generate_prompt(mood: mood, genre: genre, decade: decade, runtime: runtime),
+      openai_prompt: OpenAiService.generate_prompt(mood: mood, genre: genre, decade: decade, runtime_filter: runtime),
       openai_response: full_response
     )
 
     # Step 5: Return the serialized movie
-    render json: MovieSerializer.new(movie), status: :ok
+    render json: RecommendationSerializer.new(recommendation), status: :ok
   end
 end
