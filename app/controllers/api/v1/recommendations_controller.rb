@@ -6,7 +6,7 @@ class Api::V1::RecommendationsController < ApplicationController
     mood    = params[:mood]
     genre   = params[:genre]
     decade  = params[:decade]
-    runtime_filter = params[:runtime_filter]
+    runtime_filter = params[:runtime_filter] || params[:runtime]
     runtime = runtime_filter
 
     # Step 2: Call OpenAIService
@@ -35,7 +35,7 @@ class Api::V1::RecommendationsController < ApplicationController
     end 
 
     # Step 4: Create a Recommendation record
-    recommendation = Recommendation.create!(
+    recommendation = Recommendation.new(
       user: current_user,
       movie: movie,
       tmdb_id: movie.tmdb_id,
@@ -47,6 +47,11 @@ class Api::V1::RecommendationsController < ApplicationController
       openai_prompt: OpenAiService.generate_prompt(mood: mood, genre: genre, decade: decade, runtime_filter: runtime),
       openai_response: full_response
     )
+
+    unless recommendation.save
+      puts recommendation.errors.full_messages
+      return render json: { error: "Recommendation could not be created", details: recommendation.errors.full_messages }, status: :unprocessable_entity
+    end
 
     # Step 5: Return the serialized movie
     render json: RecommendationSerializer.new(recommendation), status: :ok

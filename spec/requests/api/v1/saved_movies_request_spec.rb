@@ -22,14 +22,14 @@ RSpec.describe "Api::V1::SavedMovies", type: :request do
 
   describe "POST /api/v1/saved_movies" do
     it "saves a movie for the user" do
-      post "/api/v1/saved_movies", params: { movie_id: movie.id }, headers: headers
+      post "/api/v1/saved_movies", params: { saved_movie: { movie_id: movie.id } }, headers: headers
 
       expect(response).to have_http_status(:created)
       expect(JSON.parse(response.body)["data"]["attributes"]["title"]).to eq(movie.title)
     end
 
     it "returns 404 if movie not found" do
-      post "/api/v1/saved_movies", params: { movie_id: -1 }, headers: headers
+      post "/api/v1/saved_movies", params: { saved_movie: { movie_id: -1 } }, headers: headers
 
       expect(response).to have_http_status(:not_found)
       expect(response.parsed_body["error"]).to eq("Movie not found")
