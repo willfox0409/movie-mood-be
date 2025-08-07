@@ -6,6 +6,8 @@ Rails.application.routes.draw do
       post '/login', to: 'sessions#create'
       post '/signup', to: 'users#create'
       post '/recommendations', to: 'recommendations#create'
+      
+      resources :saved_movies, only: [:index, :create, :destroy]
     end
   end
 end

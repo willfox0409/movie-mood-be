@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe "Api::V1::Recommendations", type: :request do
   describe "POST /api/v1/recommendation" do
-    it "returns http success" do
+    it "returns a serialized recommendation with embedded movie data" do
       user = User.create!(
         username: 'testuser',
         email: 'test@example.com',
@@ -93,13 +93,12 @@ RSpec.describe "Api::V1::Recommendations", type: :request do
 
       json = JSON.parse(response.body)
 
-      expect(json).to have_key("data")
       expect(json["data"]).to include(
         "id",
-        "type" => "movie",
+        "type" => "recommendation",
         "attributes" => a_hash_including(
-          "title",
-          "runtime",
+          "movie_title",
+          "runtime_minutes",
           "poster_url",
           "description"
         )
