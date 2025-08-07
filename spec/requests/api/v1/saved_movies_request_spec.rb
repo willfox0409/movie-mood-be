@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe "Api::V1::SavedMovies", type: :request do
-  let!(:user) { create(:user, password: 'ParisTexas123') }
+  let!(:user) { create(:user, password: 'ParisTexas123', password_confirmation: 'ParisTexas123') }
   let!(:movie) { create(:movie, title: "Hereditary") }
   let!(:headers) do
     post "/api/v1/login", params: { username: user.username, password: 'ParisTexas123' }
