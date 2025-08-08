@@ -1,4 +1,6 @@
 class Api::V1::RecommendationsController < ApplicationController
+  before_action :authenticate_user!
+  
   def create
     # 1) Accept parameters
     mood    = params[:mood]
