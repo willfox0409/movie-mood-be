@@ -37,8 +37,6 @@ class Api::V1::SavedMoviesController < ApplicationController
   private
 
   def set_movie
-    Rails.logger.debug { "🔍 Raw params: #{params.inspect}" }
-    Rails.logger.debug { "✅ Permitted saved_movie_params: #{saved_movie_params.inspect}" }
 
     # 1) Prefer explicit movie_id
     if saved_movie_params[:movie_id].present?
@@ -78,6 +76,7 @@ class Api::V1::SavedMoviesController < ApplicationController
   end
 
   def saved_movie_params
-    params.require(:saved_movie).permit(:movie_id, :tmdb_id)
+    # If :saved_movie is missing, return an empty ActionController::Parameters
+    params.fetch(:saved_movie, {}).permit(:movie_id, :tmdb_id)
   end
 end
