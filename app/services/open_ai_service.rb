@@ -54,54 +54,68 @@ class OpenAiService
   def self.recommend_movies(mood:, genre:, decade:, runtime_filter:)
     prompt = generate_prompt_multi(mood: mood, genre: genre, decade: decade, runtime_filter: runtime_filter)
 
-    response = post(
-      "/chat/completions",
-      headers: {
-        "Authorization" => "Bearer #{ENV['OPENAI_API_KEY']}",
-        "Content-Type" => "application/json"
-      },
-      body: {
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: "You are a movie expert who recommends films based on mood and context." },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.7
-      }.to_json
-    )
+    begin
+      response = post(
+        "/chat/completions",
+        headers: {
+          "Authorization" => "Bearer #{ENV['OPENAI_API_KEY']}",
+          "Content-Type"  => "application/json"
+        },
+        body: {
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: "You are a movie expert who recommends films based on mood and context." },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.7
+        }.to_json,
+        timeout: 20
+      )
+    rescue SocketError, Net::ReadTimeout, HTTParty::Error => e
+      Rails.logger.error("[OpenAI] network error: #{e.class} #{e.message}")
+      return nil
+    end
 
-    return nil unless response.success?
+    unless response.success?
+      Rails.logger.error("[OpenAI] HTTP #{response.code} body: #{response.body.to_s[0,500]}")
+      return nil
+    end
 
     result  = response.parsed_response
     content = result.dig("choices", 0, "message", "content").to_s
+    Rails.logger.info("[OpenAI] content preview: #{content[0,200].gsub("\n"," ")}")
 
-    items = begin
-      parsed = JSON.parse(content)
-      parsed.is_a?(Array) ? parsed : []
-    rescue JSON::ParserError
-      []
+    # --- sanitize code fences / markdown wrappers ---
+    sanitized = content.strip
+    # remove ```json / ``` fence wrappers
+    sanitized = sanitized.gsub(/\A```(?:json)?\s*/i, '').gsub(/```+\s*\z/, '').strip
+    # if still not starting with [ or {, try to extract first JSON-ish block
+    unless sanitized.lstrip.start_with?('[', '{')
+      if (m = sanitized.match(/(\[[\s\S]*\]|\{[\s\S]*\})/m))
+        sanitized = m[1]
+      end
     end
+    Rails.logger.info("[OpenAI] content preview (sanitized): #{sanitized[0,200].gsub("\n"," ")}")
 
-    # Normalize to array of up to 3 hashes { title:, release_year: }
+    items =
+      begin
+        parsed = JSON.parse(sanitized)
+        parsed.is_a?(Array) ? parsed : (parsed["items"] || [])
+      rescue JSON::ParserError => e
+        Rails.logger.error("[OpenAI] JSON parse error after sanitize: #{e.message} content: #{sanitized[0,200]}")
+        []
+      end
+
     normalized = items.first(3).map do |h|
       if h.is_a?(Hash)
-        {
-          title: h["title"].to_s.strip,
-          release_year: h["release_year"].to_i
-        }
+        { title: h["title"].to_s.strip, release_year: h["release_year"].to_i }
       else
-        # Fallback if model ignored JSON (e.g., "Movie (1999)")
         m = h.to_s.match(/(.+)\s+\((\d{4})\)/)
-        next unless m
-        { title: m[1].strip, release_year: m[2].to_i }
+        m ? { title: m[1].strip, release_year: m[2].to_i } : nil
       end
     end.compact
 
-    {
-      items: normalized,       # [{ title:, release_year: }, ... up to 3]
-      prompt: prompt,
-      full_response: result
-    }
+    { items: normalized, prompt: prompt, full_response: result }
   end
 
   def self.generate_prompt_multi(mood:, genre:, decade:, runtime_filter:)
@@ -112,9 +126,8 @@ class OpenAiService
       - decade: "#{decade}"
       - runtime preference: "#{runtime_filter}"
 
-      Return EXACTLY 3 REAL films that best fit.
-      Respond ONLY with strict JSON (no prose, no markdown), as an array of objects:
-
+      Return EXACTLY 3 items and respond ONLY with raw JSON (no prose, no markdown, no code fences).
+      The response must be a JSON array of objects like:
       [
         { "title": "Exact TMDB title", "release_year": 1999 },
         { "title": "Exact TMDB title", "release_year": 2010 },
