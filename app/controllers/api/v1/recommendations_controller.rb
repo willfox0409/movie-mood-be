@@ -1,6 +1,6 @@
 class Api::V1::RecommendationsController < ApplicationController
   before_action :authenticate_user!
-  
+
   def create
     # 1) Accept parameters
     mood    = params[:mood]
@@ -52,6 +52,9 @@ class Api::V1::RecommendationsController < ApplicationController
       m.poster_url = primary[:poster_url]
       m.description = primary[:description]
     end
+
+    # 👇 Add this so the first choice includes a DB id the FE can save
+    enriched.first[:movie_id] = movie.id
 
     recommendation = Recommendation.new(
       user: current_user,
