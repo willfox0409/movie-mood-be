@@ -27,6 +27,19 @@ class TmdbService
   end
 
   def self.full_poster_url(path)
+    return nil if path.nil? || path.empty?
     "https://image.tmdb.org/t/p/w500#{path}"
+  end
+
+  def self.search_movie_with_year(title, year)
+    response = self.get("/search/movie", query: {
+      query: title,
+      year: year,                # narrow to original release year
+      include_adult: false,
+      api_key: ENV["TMDB_API_KEY"]
+    })
+
+    return nil unless response.success? && response["results"].present?
+    response["results"].first
   end
 end
