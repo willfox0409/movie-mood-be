@@ -26,35 +26,46 @@ RSpec.describe "Api::V1::Recommendations", type: :request do
         mood: "Cabin Fever",
         genre: "Comedy",
         decade: "1980s",
-        runtime: "under 90 min" 
+        runtime_filter: "under 90 min" 
       }
 
-      # ✅ Stub OpenAI response before the request
+      # ✅ Stub OpenAI to return the new array format (as a STRING)
       openai_stub_response = {
         id: "chatcmpl-abc123",
         object: "chat.completion",
         created: 1234567890,
-        model: "gpt-4o",
+        model: "gpt-4o",  
         choices: [
           {
             index: 0,
             message: {
               role: "assistant",
-              content: "Stripes"
+              # IMPORTANT: content is a JSON array string
+              content: [
+                { title: "Stripes", release_year: 1981 }
+              ].to_json
             },
             finish_reason: "stop"
           }
         ]
       }
 
-      stub_request(:post, "https://api.openai.com/v1/chat/completions").
-        to_return(
+      stub_request(:post, "https://api.openai.com/v1/chat/completions")
+        .to_return(
           status: 200,
           body: openai_stub_response.to_json,
-          headers: { 'Content-Type' => 'application/json' }
+          headers: { "Content-Type" => "application/json" }
         )
 
-      # ✅ Stub TMDB search
+      # ✅ Use runtime_filter to match controller
+      params = {
+        mood: "Cabin Fever",
+        genre: "Comedy",
+        decade: "1980s",
+        runtime_filter: "under 90 min"
+      }
+
+      # TMDB search stub stays the same
       tmdb_search_stub = {
         results: [
           {
@@ -65,44 +76,40 @@ RSpec.describe "Api::V1::Recommendations", type: :request do
           }
         ]
       }
+      stub_request(:get, /api\.themoviedb\.org\/3\/search\/movie/)
+        .to_return(status: 200, body: tmdb_search_stub.to_json, headers: { "Content-Type" => "application/json" })
 
-      stub_request(:get, /api.themoviedb.org\/3\/search\/movie/).
-        to_return(
-          status: 200,
-          body: tmdb_search_stub.to_json,
-          headers: { 'Content-Type' => 'application/json' }
-        )
+      # TMDB details stub (runtime, etc.)
+      tmdb_details_stub = { runtime: 106 }
+      stub_request(:get, %r{https://api\.themoviedb\.org/3/movie/123\?api_key=.*})
+        .to_return(status: 200, body: tmdb_details_stub.to_json, headers: { "Content-Type" => "application/json" })
 
-      # ✅ Stub TMDB details
-      tmdb_details_stub = {
-        runtime: 106
-      }
-
-    stub_request(:get, %r{https://api\.themoviedb\.org/3/movie/123\?api_key=.*}).
-      to_return(
-        status: 200,
-        body: tmdb_details_stub.to_json,
-        headers: { 'Content-Type' => 'application/json' }
-      )
-
-      # ✅ Now make the request *after* stubbing
       post "/api/v1/recommendations", params: params, headers: headers
-
-      # ✅ Expectations
       expect(response).to have_http_status(:ok)
 
       json = JSON.parse(response.body)
 
-      expect(json["data"]).to include(
-        "id",
-        "type" => "recommendation",
-        "attributes" => a_hash_including(
-          "movie_title",
-          "runtime_minutes",
-          "poster_url",
-          "description"
-        )
+      # top-level type changed
+      expect(json["data"]).to include("type" => "recommendation_batch")
+
+      attrs = json["data"]["attributes"]
+      expect(attrs).to include("choices", "primary_recommendation_id")
+
+      # choices array with enriched movie fields
+      expect(attrs["choices"]).to be_an(Array)
+      first = attrs["choices"].first
+
+      expect(first).to include(
+        "title" => "Stripes",
+        "release_year" => 1981,
+        "runtime_minutes" => 106,
+        "poster_url" => "https://image.tmdb.org/t/p/w500/stripes_poster.jpg",
+        "description" => "Two friends who are dissatisfied with their jobs decide to join the army.",
+        "tmdb_id" => 123
       )
+
+      # movie_id is created in your DB — presence check is enough
+      expect(first).to have_key("movie_id")
     end
 
     it "returns 404 if TMDB cannot find the movie" do
@@ -121,35 +128,31 @@ RSpec.describe "Api::V1::Recommendations", type: :request do
       token = JSON.parse(response.body)["token"]
       headers = { "Authorization" => "Bearer #{token}" }
 
-      # Stub OpenAI response to return a movie that doesn't exist in TMDB
-      stub_request(:post, "https://api.openai.com/v1/chat/completions").
-        to_return(
+      # ✅ OpenAI returns a valid array string with a fake title
+      stub_request(:post, "https://api.openai.com/v1/chat/completions")
+        .to_return(
           status: 200,
           body: {
             choices: [
-              { message: { content: "Totally Fake Movie 9000" } }
+              { message: { content: [{ title: "Totally Fake Movie 9000", release_year: 2033 }].to_json } }
             ]
           }.to_json,
-          headers: { 'Content-Type' => 'application/json' }
+          headers: { "Content-Type" => "application/json" }
         )
 
-      # Stub TMDB search to return an empty result
-      stub_request(:get, /api.themoviedb.org\/3\/search\/movie/).
-        to_return(
-          status: 200,
-          body: { results: [] }.to_json,
-          headers: { 'Content-Type' => 'application/json' }
-        )
+      # ✅ TMDB returns no hits → should produce 404
+      stub_request(:get, /api\.themoviedb\.org\/3\/search\/movie/)
+        .to_return(status: 200, body: { results: [] }.to_json, headers: { "Content-Type" => "application/json" })
 
       post "/api/v1/recommendations", params: {
         mood: "Surreal",
         genre: "Sci-Fi",
         decade: "2030s",
-        runtime: "90"
+        runtime_filter: "90"
       }, headers: headers
 
       expect(response).to have_http_status(:not_found)
-      expect(JSON.parse(response.body)).to eq({ "error" => "Movie not found" })
+      expect(JSON.parse(response.body)).to eq({ "error" => "No matching movies found" })
     end
   end
 end
